@@ -6,6 +6,8 @@ var exec = require('child_process').exec;
 function puts(error, stdout, stderr) { /* sys.puts(stdout) */ }
 function putstr(error, stdout, stderr) { sys.puts(stdout) }
 
+var stripe = require('stripe')(' your stripe API key ');
+
 
 /*
 +-----+-----+---------+------+---+--B Plus--+---+------+---------+-----+-----+
@@ -62,6 +64,47 @@ function bitField(value)
          }
 
 }
+
+function parseCard(string)
+{
+        var card = {};
+        if (string.indexOf("%B") != 0)
+        {
+                console.log("Bad Card: " + string);
+                return null;
+        }
+
+        string = string.substr(2);
+        var ar = string.split('^');
+        card.number = ar[0];
+        var name = ar[1].split('/');
+        card.name = name[1]+name[0];
+        card.exp_year = ar[2].substr(0,2);
+        card.exp_month = ar[2].substr(2,2);
+	card.object = "card";
+    return card;
+}
+
+
+function chargeCard(amountCAD, card, description)
+{
+
+	var charge = stripe.charges.create({
+  	amount: amountCAD,
+  	currency: "cad",
+  	source: card,
+	description: description
+	}, function(err, charge) {
+  		// asynchronously called
+	});
+
+	if (charge.status == "succeeded")
+		return true;
+	else
+		return false;
+}
+
+
 
 function setupInputs()
 {
@@ -134,7 +177,9 @@ function verifyCard(data)
     else
     {
         console.log("looks like Credit Card");
-        return true; 
+        return chargeCard(500,
+	parseCard(data),
+	"Site3 Refereshments"); 
     }
     return false;
 }
@@ -167,7 +212,7 @@ function dispense()
                 // all good dispense the can.
 		console.log("dispensing out of: ["+i+"] which is bcmGPIO: " + outputs[i] );
                 outputGpios[i].writeSync(1);
-                sleep(500);
+                sleep(1000);
                 outputGpios[i].writeSync(0);
 
                 return true;
