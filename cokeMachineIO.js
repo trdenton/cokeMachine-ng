@@ -1,3 +1,9 @@
+var stripe = require("stripe")(
+  "sk_test_Jx36AA1fL6yLxbmK8IGuGKHj"
+);
+
+var exec = require('child_process').exec;
+var chargeInProgress = null;
 
 // set up required objects
 var Gpio = require('onoff').Gpio;
@@ -5,7 +11,6 @@ var sys = require('sys')
 var exec = require('child_process').exec;
 function puts(error, stdout, stderr) { /* sys.puts(stdout) */ }
 function putstr(error, stdout, stderr) { sys.puts(stdout) }
-
 var stripe = require('stripe')(' your stripe API key ');
 
 
@@ -36,11 +41,6 @@ var stripe = require('stripe')(' your stripe API key ');
  +-----+-----+---------+------+---+----++----+---+------+---------+-----+-----+
  | BCM | wPi |   Name  | Mode | V | Physical | V | Mode | Name    | wPi | BCM |
  +-----+-----+---------+------+---+--B Plus--+---+------+---------+-----+-----+
-
-%B4500030113633865^RAZ/ARMAND B ^1709201055660019020000078000000?;4500030113633865=17092010556607890201?
-%B4500030113633865^RAZ/ARMAND B ^1709201055660019020000078000000?;4500030113633865=17092010556607890201?
-
-
 */
 
 // set up buttons and empty indicators
@@ -51,61 +51,6 @@ var stripe = require('stripe')(' your stripe API key ');
 
 var inputGpios = new Array();
 var outputGpios = new Array();
-
-function bitField(value)
-{
-		this.value = (!isNaN(parseFloat(value)) && isFinite(value))? value : 0;
-		this.getBit = function(bitNumber) { return (this.value >> bitNumber)& 0x1 }
-        this.setBit = function(bitNumber, value) {
-                        if (value == 0)
-                        { this.value &= 0x7FFFFFFF  & ~(1 << bitNumber); }
-                else
-                        { this.value |= 0x1 << bitNumber; }
-         }
-
-}
-
-function parseCard(string)
-{
-        var card = {};
-        if (string.indexOf("%B") != 0)
-        {
-                console.log("Bad Card: " + string);
-                return null;
-        }
-
-        string = string.substr(2);
-        var ar = string.split('^');
-        card.number = ar[0];
-        var name = ar[1].split('/');
-        card.name = name[1]+name[0];
-        card.exp_year = ar[2].substr(0,2);
-        card.exp_month = ar[2].substr(2,2);
-	card.object = "card";
-    return card;
-}
-
-
-function chargeCard(amountCAD, card, description)
-{
-
-	var charge = stripe.charges.create({
-  	amount: amountCAD,
-  	currency: "cad",
-  	source: card,
-	description: description
-	}, function(err, charge) {
-  		// asynchronously called
-	});
-
-	if (charge.status == "succeeded")
-		return true;
-	else
-		return false;
-}
-
-
-
 function setupInputs()
 {
     for (var i = 0; i < inputs.length; i++)
@@ -126,13 +71,6 @@ function setupOutputs()
 	    outputGpios[i] = new Gpio(outputs[i], 'out');
     }
 }
-
-function sleep(miliseconds)
-{
-  var end = new Date().getTime() + miliseconds;
-  while(new Date().getTime() < end);
-}
-
 function printInputs()
 {
   var btns = new bitField(0);
@@ -158,33 +96,104 @@ function exit() {
   process.exit();
 }
 
+function bitField(value)
+{
+		this.value = (!isNaN(parseFloat(value)) && isFinite(value))? value : 0;
+		this.getBit = function(bitNumber) { return (this.value >> bitNumber)& 0x1 }
+        this.setBit = function(bitNumber, value) {
+                        if (value == 0)
+                        { this.value &= 0x7FFFFFFF  & ~(1 << bitNumber); }
+                else
+                        { this.value |= 0x1 << bitNumber; }
+         }
+
+}
+
 process.on('SIGINT', exit);
 
-// arduino style setup
-function setup()
+
+
+
+
+function play(mp3)
 {
-    setupInputs();
-    setupOutputs();
+  exec("mpg123 "+ mp3, null);
 }
 
-function verifyCard(data)
+function parseCard(string)
 {
-    if (data.length < 16)
-    {
-        console.log("Looks Like RFID");
-        return true;
-    }
-    else
-    {
-        console.log("looks like Credit Card");
-        return chargeCard(500,
-	parseCard(data),
-	"Site3 Refereshments"); 
-    }
-    return false;
+        var card = {};
+        if (string.indexOf("%B") != 0)
+        {
+                console.log("Bad Card: " + string);
+                return null;
+        }
+
+        string = string.substr(2);
+        var ar = string.split('^');
+        card.number = ar[0];
+        var name = ar[1].split('/');
+        card.name = name[1]+name[0];
+        card.exp_year = ar[2].substr(0,2);
+        card.exp_month = ar[2].substr(2,2);
+	card.object = "card";
+	//console.log("card:  %j", card);
+
+    return card;
 }
 
-function dispense()
+function preAuth(string)
+{
+	if (string.length < 4)
+		{play("fail.wav"); return; }
+
+	var out = stripe.charges.create({
+  	amount: 500,
+  	currency: "cad",
+  	source: parseCard(string),
+	capture: false, 
+  	description: "Charge for refereshments"
+	}, function(err, charge) {
+	  // asynchronously called
+	  if (charge !== null && charge["status"] == "paid")
+	{
+		console.log("Authorized!");
+		play("success.wav");
+		tryDispensing(charge);
+		chargeInProgress = charge;
+	}
+	  else
+  	{
+	console.log("charge: %j error: %j", charge, err);
+	chargeInProgress = null;
+	play("fail.wav");
+	// done here
+	}
+	});
+}
+
+function captureCharge(charge, success, fail)
+{
+	stripe.charges.capture(charge.id, function(err, chargeInfo) {
+  	// asynchronously called	  
+	if (charge !== null && charge["status"] == "paid")
+		success(charge);
+	else
+		fail(err);
+	});
+}
+
+function dispenseAt(bayNumber)
+{
+	console.log("dispensing at: " + bayNumber);
+                // all good dispense the can.
+		console.log("dispensing out of: ["+ bayNumber +"] which is bcmGPIO: " + outputs[bayNumber] );
+                outputGpios[bayNumber].writeSync(1);
+                sleep(1000);
+                outputGpios[bayNumber].writeSync(0);
+}
+
+function tryDispensing(charge)
 {
     console.log("Choose Booze");
     
@@ -200,66 +209,88 @@ function dispense()
             {
                 console.log("button " + i + "down!");
 
+		// reset the timer
+		end = new Date().getTime() + 30000; // 30 seconds
+		
                 printInputs();
 
                 // are we out of it?
                 if (inputGpios[i+8].readSync() == 0)
                 {
                     console.log("we are out of that thing");
-                    return false;
+		    play("error.mp3");
                 }
+		else
+		{
+		    captureCharge(charge, function(c){ 
+			dispenseAt(i); console.log("final: %j", c); play("cheer.mp3");  setTimeout(function(){chargeInProgress = null; },5000); }, 
+				function(err) { play("fail.wave"); });
 
-                // all good dispense the can.
-		console.log("dispensing out of: ["+i+"] which is bcmGPIO: " + outputs[i] );
-                outputGpios[i].writeSync(1);
-                sleep(1000);
-                outputGpios[i].writeSync(0);
+		}
 
-                return true;
             }
         i++;
         if (i > buttonsEnd)
             i = buttonsStart;
     }
+
 	console.log("Waited too long!");
-
+	play("error.mp3");
+	chargeInProgress = null;
 }
 
-setup();
 
-main();
-
-function main() 
+function sleep(miliseconds)
 {
-    var readline = require('readline'),
-	rl = readline.createInterface(process.stdin, process.stdout);
-
-    rl.setPrompt('CokePi> ');
-    rl.prompt();
-
-    rl.on('line', function(line) {
-
-     if (verifyCard(line.trim()))
-     {
-        console.log('Success');
-        if (dispense() == true)
-        {
-            console.log('dispensed');
-        }
-     }
-
-      rl.prompt();
-    }).on('close', function() {
-      console.log('Have a great day!');
-      exit();
-    });
-
+  var end = new Date().getTime() + miliseconds;
+  while(new Date().getTime() < end);
 }
 
+//  source: parseCard("%B4242424242424242^RAZ/ARMAND B ^160723?;2234234")
+
+var currentTimeoutId = null;
+var currentCardData = "";
+
+// set up IO
+    setupInputs();
+    setupOutputs();
 
 
 
+process.stdin.setEncoding('utf8');
+process.stdin.setRawMode(true);
 
+console.log("type quit to do it");
+
+
+// this real main function where things start
+process.stdin.on('readable', function () {
+  var key = String(process.stdin.read());
+  //console.log("got: " + key);
+
+  if (currentTimeoutId != null)
+	clearTimeout(currentTimeoutId);
+ 
+  if (currentCardData + key == "quit") exit();
+ 
+  currentCardData += key;
+
+  currentTimeoutId = setTimeout(function()
+		 { 
+			currentCardData = currentCardData.trim();
+			console.log("ok: running: " + currentCardData);
+			if(chargeInProgress == null && currentCardData.length > 4)
+				 preAuth(currentCardData);
+			currentCardData = "";
+		},
+		500);
+
+});
+
+process.stdin.on('end', function() {
+            process.stdout.write('end');
+	exit();
+});
 
 
 
