@@ -1,5 +1,5 @@
 var stripe = require("stripe")(
-  "sk_test_Jx36AA1fL6yLxbmK8IGuGKHj"
+  "sk_test_"
 );
 
 var exec = require('child_process').exec;
