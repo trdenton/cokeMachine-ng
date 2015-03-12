@@ -1,5 +1,15 @@
 # cokeMachine
 
+Converted Coke Machine driver in Node.JS.
+# Set up:
+A Raspberry Pi running Node.Js controlling a 8-Relay Board (single Coil Non-latching) to Trigger/Drive the Machine Dispensing Motors.  
+- The **sold out** switches are connected to the indicated header pins in the table below and are **active low** as in, connect the other end of the switch to ground. 
+- The Selection **Buttons** on the front of the machine are connected to the header pins in table below and are also active low.
+- The **Output pins** are connected to the respective relay on the relay board driving each bay/compartment motor.
+- This system uses stripe.com for processing.  Ensure to manage the API key at the top of the file. As-in not host it on git.
+
+
+
 | notes | BCM Pin | Name | Header | Header  | Name  | BCM Pin | notes |
 | ------| --------| -----| -------| --------| ----- | --------| ------|
 | **Near Red LED**  |         | 3.3v |  1     | 2       |   5v  |         | **PCB Corner** |
