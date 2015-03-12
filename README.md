@@ -2,13 +2,13 @@
 
 | notes | BCM Pin | Name | Header | Header  | Name  | BCM Pin | notes |
 | ------| --------| -----| -------| --------| ----- | --------| ------|
-| Near Red LED  |         | 3.3v |  1     | 2       |   5v  |         | PCB Corner |
+| ### Near Red LED  |         | 3.3v |  1     | 2       |   5v  |         | PCB Corner |
 |          |   2     |SDA.1 |  3     |      4  |   5V  |         |       |
 |          |   3     |SCL.1 |5       | 6       |   0v  |         |       |
 |          |   4     |GPIO.7|7       | 8       |TxD    | 14      |       |
 |          |         |      0v |9    | 10      | RxD   | 15      | Output 4      |
-| Output 0 |  17   |GPIO. 0| 11  | 12      |GPIO. 1 | 18     |    Output 5      |
-| Output 1 |  27     |GPIO.2|  13    | 14      |   0v   |     |     |     |
+| ### Output 0 |  17   |GPIO. 0| 11  | 12      |GPIO. 1 | 18     |    Output 5      |
+| ### Output 1 |  27     |GPIO.2|  13    | 14      |   0v   |     |     |     |
 | Output 2 |  22     |GPIO. 3| 15 | 16 | GPIO. 4 | 23  |  Output 6|
 | 3V3 HIGH |         |         3.3v |17 | 18 | GPIO. 5 | 24  |  Output 7  |
 | Output 3 |  10     |   MOSI |   19 |20 |   0v      |     |     |
