@@ -17,11 +17,11 @@
 | |     |0v         | 25   | 26 | CE1     | 7   | |
 |  |   0 |   SDA.0 | 27 | 28 | SCL.0     | 1   | |
 |  |   5 |GPIO.21 |   29 | 30 |   0v      |     |     |
-| |   6 | GPIO.22 |   31 | 32 | GPIO.26  | 12   |   |
-| |  13 | GPIO.23 | 33 | 34       | 0v      |     |     |
-| |  19 |  GPIO.24  | 35 | 36 | GPIO.27 | 16  | |
-| |  26 | GPIO.25   | 37 | 38 | GPIO.28 | 20  |  |
-| |     |      0v  | 39 | 40 |  GPIO.29 | 21  |  |
+| Button 0 |   6 | GPIO.22 |   31 | 32 | GPIO.26  | 12   | Button 4  |
+| Button 1 |  13 | GPIO.23 | 33 | 34       | 0v      |     | Ground     |
+| Button 2 |  19 |  GPIO.24  | 35 | 36 | GPIO.27 | 16  | Button 5 |
+| Button 3 |  26 | GPIO.25   | 37 | 38 | GPIO.28 | 20  |  Button 6 |
+| Ground |     |      0v  | 39 | 40 |  GPIO.29 | 21  | Button 7  |
 
 // set up buttons and empty indicators
  var inputs  =  [6,13,19,26,12,16,20,21,   // inputs
