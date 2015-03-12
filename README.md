@@ -1,6 +1,7 @@
 # cokeMachine
 
 | notes | BCM Pin | Name | Header | Header  | Name  | BCM Pin | notes |
+| ------| --------| -----| -------| --------| ----- | --------| ------|
 |       |         | 3.3v |  1     | 2       |   5v  |         |       |
 |       |   2     |SDA.1 |  3     |      4  |   5V  |         |       |
 |       |   3     |SCL.1 |5       | 6       |   0v  |         |       |
