@@ -1,17 +1,17 @@
-var stripe = require("stripe")(
-  "sk_test_"
-);
+var stripe = require("stripe")("sk_token here");
+var herokuToken = "enter that here";
 
 var exec = require('child_process').exec;
+var http = require('https');
+
 var chargeInProgress = null;
 
 // set up required objects
 var Gpio = require('onoff').Gpio;
-var sys = require('sys')
+var sys = require('sys');
 var exec = require('child_process').exec;
 function puts(error, stdout, stderr) { /* sys.puts(stdout) */ }
 function putstr(error, stdout, stderr) { sys.puts(stdout) }
-var stripe = require('stripe')(' your stripe API key ');
 
 
 /*
@@ -110,9 +110,6 @@ function bitField(value)
 }
 
 process.on('SIGINT', exit);
-
-
-
 
 
 function play(mp3)
@@ -239,6 +236,46 @@ function tryDispensing(charge)
 	chargeInProgress = null;
 }
 
+function validateRfid(Rfid, success, fail)
+{
+        var host = "site3.herokuapp.com";
+        var query = "/purchases?rfid=" + Rfid + "&token=" + herokuToken;
+        http.get(
+        {
+          hostname : host,
+          path : query,
+          method: 'POST'
+        }
+        , function(res)
+        {
+                console.log("status: " + res.statusCode);
+                res.on('data',
+                        function(res) {
+                        console.log("Received Data:" + res);
+                        if ('{"status":0}' == res)
+                                success();
+                        else
+                                fail(res);
+                        }
+                );
+        }).on('error', fail);
+}
+
+function processRfid(Rfid)
+{
+	validateRfid(Rfid,
+        function()
+	{
+        	console.log("it passes!");
+		play("success.wav");
+	},
+	function(error)
+	{
+        	console.log("error: " + error);
+      		play("fail.wav");
+	}
+	);
+}
 
 function sleep(miliseconds)
 {
@@ -246,22 +283,23 @@ function sleep(miliseconds)
   while(new Date().getTime() < end);
 }
 
-//  source: parseCard("%B4242424242424242^RAZ/ARMAND B ^160723?;2234234")
+//  source: parseCard("%B4242424242424242^SITE3/ARMAND B ^160723?;2234234")
 
 var currentTimeoutId = null;
 var currentCardData = "";
 
 // set up IO
+console.log("Setting Up Inputs.");
     setupInputs();
+console.log("Setting Up Outputs.");
     setupOutputs();
-
+console.log("IO Set up Complete.");
 
 
 process.stdin.setEncoding('utf8');
 process.stdin.setRawMode(true);
 
-console.log("type quit to do it");
-
+console.log("Type quit to do it");
 
 // this real main function where things start
 process.stdin.on('readable', function () {
