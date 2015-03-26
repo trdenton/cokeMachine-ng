@@ -1,5 +1,5 @@
 // cokeIO module
-exports.cokeIO = cokeIO;
+module.exports = cokeIO;
 
 cokeIO.prototype.tryDispensing = tryDispensing;
 cokeIO.prototype.dispenseAt = dispenseAt;
@@ -49,6 +49,8 @@ var outputGpios = new Array();
 
 function cokeIO(inputs, outputs)
 {
+  if (!(this instanceof cokeIO))
+    return new cokeIO(inputs, outputs);
 
   setupInputs(inputs);
   setupOutputs(outputs);
@@ -56,36 +58,36 @@ function cokeIO(inputs, outputs)
 
 function setupInputs(inputs)
 {
-    console.log("Setting Up Inputs.");
+  process.stdout.write("\nSetting Up Inputs.");
     for (var i = 0; i < inputs.length; i++)
     {
 	    exec("gpio -g write " + inputs[i] + " 0", puts);
 	    exec("gpio -g mode " + inputs[i] + " in", puts);
 	    exec("gpio -g mode " + inputs[i] + " up ", puts);
 	    inputGpios[i] = new Gpio(inputs[i], 'in','both');
-      console.log(".");
+      process.stdout.write(".");
     }
-    console.log("done.");
+    process.stdout.write("done.");
 }
 
 function setupOutputs(outputs)
 {
-    console.log("Setting Up Outputs.");
+  process.stdout.write("\nSetting Up Outputs.");
     for (var i=0; i < outputs.length; i++)
     {
 	    exec("gpio -g mode " + outputs[i] + " out", puts);
 	    exec("gpio -g write " + outputs[i] + " 0 ", puts);
 	    outputGpios[i] = new Gpio(outputs[i], 'out');
-      console.log(".");
+      process.stdout.write(".");
     }
-    console.log("done.");
+    process.stdout.write("done.\n");
 }
 
 function printInputs()
 {
   var btns = new bitField(0);
 
-  for (var i=0; i < inputs.length; i++)
+  for (var i=0; i < inputGpios.length; i++)
     {
 		    btns.setBit(i, inputGpios[i].readSync());
         //		    if (inputGpios[i].readSync() != 0)
@@ -105,11 +107,17 @@ function exit()
       inputGpios[i].unexport();
 }
 
+function sleep(miliseconds)
+{
+  var end = new Date().getTime() + miliseconds;
+  while(new Date().getTime() < end);
+}
+
 function dispenseAt(bayNumber)
 {
 	console.log("dispensing at: " + bayNumber);
                 // all good dispense the can.
-		console.log("dispensing out of: ["+ bayNumber +"] which is bcmGPIO: " + outputs[bayNumber] );
+		console.log("dispensing out of: ["+ bayNumber +"] which is bcmGPIO: " + outputGpios[bayNumber].gpio );
                 outputGpios[bayNumber].writeSync(1);
                 sleep(1000);
                 outputGpios[bayNumber].writeSync(0);

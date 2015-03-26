@@ -43,6 +43,7 @@ function (string, charge, err) { console.log(" RFID err!");}
 );
 */
 
+/*
 var rfid = site3Card.parseCard("DEADBEEF");
 
 site3Card.captureCharge(rfid,
@@ -56,3 +57,15 @@ var rfid = site3Card.parseCard("DEADBEAT");
      function () {console.log(" rfid capture success!") },
      function () {console.log(" rfid capture fail!") }
       );
+
+*/
+
+// set up buttons and empty indicators
+var inputs  =          [6,13,19,26,12,16,20,21,
+		/* indicators */ 9,11,0,5,25,8,7,1];
+
+var outputs = [17,27,22,10,4,18,23,24];
+
+var cokeIO = require("./cokeIO")(inputs, outputs);
+cokeIO.printInputs();
+cokeIO.dispenseAt(1);
