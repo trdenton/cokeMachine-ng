@@ -1,5 +1,5 @@
 var play = require("./audio")().play;
-var site3Card = require("./site3Card")("sk_test_Jx36AA1fL6yLxbmK8IGuGKHj","1dd4432e4b54e5a73a7b00a4e8213c");
+var site3Card = require("./site3Card")("sk_test_","secret");
 
 //play('success.mp3');
 //play('fail.mp3');
