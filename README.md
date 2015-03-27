@@ -30,9 +30,10 @@ config = {
   soldOutSoundFile: "fail.mp3",
   test : function(foo) {return foo + " bar!";}
 };
-```
 
 module.exports = config;
+
+```
 
 
 
