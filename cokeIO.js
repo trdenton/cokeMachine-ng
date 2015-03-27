@@ -134,28 +134,36 @@ function tryDispensing(success, fail)
     var i= buttonsStart;
 
     var end = new Date().getTime() + 45000; // 45 seconds
+    var lasterror = new Date().getTime() - 2000;
+
     while(i <= buttonsEnd && (new Date().getTime()) < end )
     {
         // is there button down?
-
+        sleep(50);
   	if (inputGpios[i].readSync() != 1)
             {
                 console.log("button " + i + "down!");
 
           		// reset the timer
-          		end = new Date().getTime() + 30000; // 30 seconds
+          		//end = new Date().getTime() + 30000; // 30 seconds
 
                 printInputs();
 
                 // are we out of it?
                 if (inputGpios[i+8].readSync() == 0)
                 {
-                    console.log("we are out of that thing");
-		                fail("soldout");
+                    if ( (new Date().getTime()) > (lasterror + 2000)  )
+                    {
+                      console.log("we are out of that thing");
+
+                      lasterror = new Date().getTime();
+                      fail("soldout");
+                    }
                 }
 		            else
 		            {
                   success(i);
+                  return;
 		            }
 
             }

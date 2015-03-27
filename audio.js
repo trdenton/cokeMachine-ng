@@ -5,7 +5,7 @@ function audio()
   if (!(this instanceof audio))
     return new audio();
 
-  console.log('loaded audio module');
+  //console.log('loaded audio module');
 };
 
 var exec = require('child_process').exec;
