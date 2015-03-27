@@ -13,10 +13,15 @@ a Configuration file in the form of a nodejs module should be placed in the dire
 above these files (as in ../config.js). example content:
 
 config = {
+
   herokuUrl : "site3-staging.herokuapp.com",
+  
   herokuKey : "1dd4432e4000002342042422222",
+  
   stripeKey: "sk_test_Jxxxxxxxxxxxxxxxxxxx",
+  
   maxDelayBetweenInputBytes: 500,
+  
   minDelayBetweenSuccessfulCharges: 2000,
   minDelayBetweenFaildCharges: 1500,
   inputs:          [6,13,19,26,12,16,20,21,
