@@ -19,12 +19,12 @@ var site3Card = require("./site3Card")(config.stripeKey,
 //play('fail.mp3');
 
 /*
-var card = site3Card.parseCard("%B4242424242424242^RAZ/ARMAND B ^160723?;2234234");
+var card = site3Card.parseCard("%B4242424242424242^SITE3/ARMAND B ^160723?;2234234");
 console.log(JSON.stringify(card));
 */
 
 /*
-site3Card.preAuth("%B4242424242424242^RAZ/ARMAND B ^160723?;2234234",
+site3Card.preAuth("%B4242424242424242^SITE3/ARMAND B ^160723?;2234234",
     function (charge) {
 
         console.log("success!");
@@ -37,7 +37,7 @@ site3Card.preAuth("%B4242424242424242^RAZ/ARMAND B ^160723?;2234234",
 function (string, charge, err) { console.log("err!" + err.code);}
 );
 
-site3Card.preAuth("%B4243424242424242^RAZ/ARMAND B ^160723?;2234234",
+site3Card.preAuth("%B4243424242424242^SITE3/ARMAND B ^160723?;2234234",
 function (charge) { console.log("success!");} ,
 function (string, charge, err) { console.log("err!" + err.code);}
 );
