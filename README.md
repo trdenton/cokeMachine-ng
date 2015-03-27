@@ -12,17 +12,16 @@ A Raspberry Pi running Node.Js controlling a 8-Relay Board (single Coil Non-latc
 a Configuration file in the form of a nodejs module should be placed in the directory
 above these files (as in ../config.js). example content:
 
+```
 config = {
-herokuUrl : "site3-staging.herokuapp.com",
-herokuKey : "1dd4432e4000002342042422222",
-stripeKey: "sk_test_Jxxxxxxxxxxxxxxxxxxx",
-  
+  herokuUrl : "site3-staging.herokuapp.com",
+  herokuKey : "1dd4432e4000002342042422222",
+  stripeKey: "sk_test_Jxxxxxxxxxxxxxxxxxxx",
   maxDelayBetweenInputBytes: 500,
-  
   minDelayBetweenSuccessfulCharges: 2000,
   minDelayBetweenFaildCharges: 1500,
   inputs:          [6,13,19,26,12,16,20,21,
-  		/* indicators */ 9,11,0,5,25,8,7,1],
+    		/* indicators */ 9,11,0,5,25,8,7,1],
   outputs: [17,27,22,10,4,18,23,24],
   swipeFailSoundFile: "fail.mp3",
   swipeSuccessSoundFile: "success.mp3",
@@ -31,6 +30,7 @@ stripeKey: "sk_test_Jxxxxxxxxxxxxxxxxxxx",
   soldOutSoundFile: "fail.mp3",
   test : function(foo) {return foo + " bar!";}
 };
+```
 
 module.exports = config;
 
