@@ -1,156 +1,126 @@
-var play = require("./audio")().play;
-var config = require("../config");
-var util = require('util');
+var http = require('https');
 
-var site3Card = require("./site3Card")(config.stripeKey,
-                config.herokuKey,
-                config.herokuUrl);
+module.exports = site3Card;
 
-// set up buttons and empty indicators
-var cokeIO = require("./cokeIO")(config.inputs, config.outputs);
+site3Card.prototype.captureCharge = captureCharge;
+site3Card.prototype.parseCard = parseCard;
+site3Card.prototype.preAuth =preAuth;
+site3Card.prototype.parseCard = parseCard;
+site3Card.prototype.captureChargeRfid = captureChargeRfid;
 
-// this is part of the mechanism that prevent
-// multiple charges going through rapidly.
-// via multiple rfid scans or card swipes
-function disableChargeInProgress(delay)
+var herokuToken;
+
+function site3Card(stripeKey, herokuKey)
 {
-  setTimeout(function()
-		 {
-       console.log("ready for next card.");
-       chargeInProgress = null;
-     }, delay);
+  if (!(this instanceof site3Card))
+    return new site3Card(stripeKey, herokuKey);
+
+  this.stripe = require("stripe")(stripeKey);
+  herokuToken = herokuKey;
+  console.log("site3 card init: " + stripeKey, herokuKey);
 }
 
-// called when the card has been pre authorized
-// on successful selection, call capture (which will then dispense on success)
-// o fail: move back to the main loop
-function attemptDispensing(charge)
+function parseCard(string)
 {
-  cokeIO.tryDispensing(
-    // on successful selection of a button
-    // and supply bay is not empty
-    function (pin){
-      console.log("selected  :" + pin);
+        var card = {};
+        if (string.indexOf("%B") != 0)
+        {
+              if (string.length == 8)
+              {
+                console.log("Rfid: " + string);
+                card.number = string;
+                card.object = "rfid";
+                return card;
+              }
+                console.log("Bad Card: " + string);
+                return null;
+        }
 
-      // charge here
-      site3Card.captureCharge(charge,
-        // on Success:
-        function (res) {
-          console.log(" card " + res + " capture success!");
-          play(config.chargeSuccessSoundFile);
-          // charge has succeed so, dispense
-          cokeIO.dispenseAt(pin);
-          disableChargeInProgress(config.minDelayBetweenSuccessfulCharges);
-          },
-          // on fail:
-        function (res, id) {
-          console.log(" card " + res + "capture fail! for: " + id);
-          play(config.chargeFailSoundFile);
-          disableChargeInProgress(config.minDelayBetweenFailedCharges);
-          }
-         );
-    },
-    // either timed out, or selected a
-    // soldout item.
-    // on soldout item just play sounds since the user has
-    // changes to make other selection
-    function (err, success){
-      console.log("failed selection: " + err);
-      play(config.soldOutSoundFile);
-      // if it's a timeout error, then
-      // we are done, because the user walked away, or gave up,
-      // or failed to make a selection in the allowed time.
-      if (err = "timedout");
-        disableChargeInProgress(config.minDelayBetweenFailedCharges);
+        string = string.substr(2);
+        var ar = string.split('^');
+        card.number = ar[0];
+        var name = ar[1].split('/');
+        card.name = name[1]+name[0];
+        card.exp_year = ar[2].substr(0,2);
+        card.exp_month = ar[2].substr(2,2);
+  card.object = "card";
+  //console.log("card:  %j", card);
+
+    return card;
+}
+
+function preAuth(string, success, fail)
+{
+  if (string.length < 4)
+    { fail("nocard"); return; }
+
+  if (string.length == 8)
+    {
+      success(parseCard(string));
+      return;
     }
-    );
-}
 
-// the main processing head
-function processInput(cardString)
-{
-  // try to pre authorize the card
-  // if successful: move towards dispensing (attemptDispensing)
-  // if fail: back out to the main loop
-  site3Card.preAuth(cardString,
-  function (charge) {
-    console.log("Auth success: " + cardString);
-    chargeInProgress = charge;
-    play(config.swipeSuccessSoundFile);
-    // try dispense
-    attemptDispensing(charge);
-  } ,
-  function (string, charge, err) {
-    console.log(" RFID err!");
-    play(config.swipeFailSoundFile);
-    disableChargeInProgress(config.minDelayBetweenFailedCharges);
+  var out = this.stripe.charges.create({
+    amount: 500,
+    currency: "cad",
+    source: parseCard(string),
+  capture: false,
+    description: "Charge for refereshments"
+  }, function(err, charge) {
+    // asynchronously called
+    if (charge !== null && charge["status"] == "paid")
+  {
+    console.log("Authorized!");
+    success(charge);
   }
-  );
+    else
+    {
+       //console.log("charge: %j error: %j", charge, err);
+       fail("chargeError", charge, err);
+       // done here
+  }
+  });
 }
 
-
-// need to clean up the io before exit
-// otherwise gpio may not be available to
-// other users
-function exit()
+function captureCharge(charge, success, fail)
 {
-  cokeIO.exit();
-  process.exit();
+  if (charge.object == 'rfid')
+  {
+    captureChargeRfid(charge.number, success, fail);
+    return;
+  }
+
+  this.stripe.charges.capture(charge.id, function(err, chargeInfo) {
+    // asynchronously called
+  if (charge !== null && charge["status"] == "paid")
+    success(charge);
+  else
+    fail(err);
+  });
 }
 
-var currentTimeoutId = null;
-var currentCardData = "";
-var chargeInProgress = null;
-
-process.stdin.setEncoding('utf8');
-process.stdin.setRawMode(true);
-console.log("Ready. Type quit to do it:");
-
-// this real main function where things start
-process.stdin.on('readable', function () {
-  var key = String(process.stdin.read());
-  //console.log("got: " + key);
-
-  // if we are still receiving bytes,
-  // delay prevent the call to process
-  // the input
-  if (currentTimeoutId != null)
-	clearTimeout(currentTimeoutId);
-
-  // manual exit command
-  if (currentCardData + key == "quit") exit();
-
-  // accumulate the bytes
-  currentCardData += key;
-
-  // the data comes in trickles, so
-  // try to send them for processing in the future
-  // if more data arrive the call will be cancelled
-  // otherwise with a sufficient delay, the timeout
-  // will run the following function
-  currentTimeoutId = setTimeout(function()
-		 {
-
-			currentCardData = currentCardData.trim();
-      process.stdout.write("\nread: " + currentCardData);
-
-      // if no existing charge is progress and real data has arrived
-      // pricess the input
-      // otherwise ignore garbage data
-      if(chargeInProgress == null && currentCardData.length > 4)
-      {
-        process.stdout.write(" Ok: processing it.");
-        // this is the head of the calling tree
-        // and will take care of all branches.
-        processInput(currentCardData);
-      }
-			currentCardData = "";
-		},
-    config.maxDelayBetweenInputBytes);
-
-});
-
-process.stdin.on('end', function() {
-            process.stdout.write('end');
-	exit();
-});
+function captureChargeRfid(Rfid, success, fail)
+{
+        var host = "site3.herokuapp.com";
+        var query = "/purchases?rfid=" + Rfid + "&token=" + herokuToken;
+        console.log("query: " + query);
+        http.get(
+        {
+          hostname : host,
+          path : query,
+          method: 'POST'
+        }
+        , function(res)
+        {
+                console.log("status: " + res.statusCode);
+                res.on('data',
+                        function(res) {
+                        console.log("Received Data:" + res);
+                        if ('{"status":0}' == res)
+                                success();
+                        else
+                                fail(res);
+                        }
+                );
+        }).on('error', fail);
+}
