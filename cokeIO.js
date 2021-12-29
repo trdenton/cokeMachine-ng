@@ -61,9 +61,13 @@ function setupInputs(inputs)
   process.stdout.write("\nSetting Up Inputs.");
     for (var i = 0; i < inputs.length; i++)
     {
-	    exec("gpio -g write " + inputs[i] + " 0", puts);
-	    exec("gpio -g mode " + inputs[i] + " in", puts);
-	    exec("gpio -g mode " + inputs[i] + " up ", puts);
+	    //export to userspace
+	    //exec("echo " + inputs[i] + " > /sys/class/gpio/export",puts);
+	    //set to input
+	    exec('echo "in" > /sys/class/gpio/gpio'+inputs[i]+'/direction',puts);
+	    //exec("gpio -g write " + inputs[i] + " 0", puts);
+	    //exec("gpio -g mode " + inputs[i] + " in", puts);
+	    //exec("gpio -g mode " + inputs[i] + " up ", puts);
 	    inputGpios[i] = new Gpio(inputs[i], 'in','both');
       process.stdout.write(".");
     }
@@ -75,8 +79,14 @@ function setupOutputs(outputs)
   process.stdout.write("\nSetting Up Outputs.");
     for (var i=0; i < outputs.length; i++)
     {
-	    exec("gpio -g mode " + outputs[i] + " out", puts);
-	    exec("gpio -g write " + outputs[i] + " 0 ", puts);
+	    //export to userspace
+	    //exec("echo " + outputs[i] + " > /sys/class/gpio/export",puts);
+	    //set to output
+	    exec('echo "out" > /sys/class/gpio/gpio'+outputs[i]+'/direction',puts);
+	    //set to low
+	    exec('echo "0" > /sys/class/gpio/gpio'+outputs[i]+'/value',puts);
+	    //exec("gpio -g mode " + outputs[i] + " out", puts);
+	    //exec("gpio -g write " + outputs[i] + " 0 ", puts);
 	    outputGpios[i] = new Gpio(outputs[i], 'out');
       process.stdout.write(".");
     }

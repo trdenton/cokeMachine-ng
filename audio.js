@@ -13,5 +13,6 @@ module.exports = audio;
 
 audio.prototype.play = function (fileName)
 {
-  exec("mpg123 "+ fileName, null);
+  //exec("mpg123 "+ fileName, null);
+  exec("sleep 3", null);
 }

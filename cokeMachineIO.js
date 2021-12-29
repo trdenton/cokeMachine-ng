@@ -107,20 +107,33 @@ var chargeInProgress = null;
 console.log("Ready. Type quit to do it:");
 
 
-//keyfob = fs.createReadStream("/dev/input/event2",{ encoding: 'ascii'});
 
 kb_keyfob = new kbc.LinuxKeyboardCatcher()
+kb_magstripe = new kbc.LinuxKeyboardCatcher()
 
 
 kb_keyfob.on('opened', () => console.log("Opened kb_keyfob"));
 kb_keyfob.on('closed', () => console.log("Closed kb_keyfob"));
 kb_keyfob.on('error', (message) => console.log("kb_keyfob Error: ",message));
-kb_keyfob.open("/dev/input/event0",false)
+kb_keyfob.open(config.keyfob,false)
 	.then(()=>console.log("kb_keyfob stream opened"))
 	.catch((e)=>console.log("kb_keyfob Exception",e));
 
+kb_magstripe.on('opened', () => console.log("Opened kb_magstripe"));
+kb_magstripe.on('closed', () => console.log("Closed kb_magstripe"));
+kb_magstripe.on('error', (message) => console.log("kb_magstripe Error: ",message));
+kb_magstripe.open(config.magstripe,false)
+	.then(()=>console.log("kb_magstripe stream opened"))
+	.catch((e)=>console.log("kb_magstripe Exception",e));
+
 // this real main function where things start
-kb_keyfob.on('event', function (keyEvent) {
+kb_keyfob.on('event', processKeystroke);
+kb_magstripe.on('event', processKeystroke);
+
+//this handles both the keyfob and the magstripe
+//technically this will fall apart if someone manages to do rfid and magstripe at the same time
+//but it will just generally fail and shouldnt cause harm
+function processKeystroke(keyEvent) {
 	if (keyEvent.value > 0 ) {
 		if (keyEvent.alt === false && keyEvent.meta === false && keyEvent.control === false) {
 			if (keyEvent.mapped) {
@@ -160,4 +173,4 @@ kb_keyfob.on('event', function (keyEvent) {
 		},
 		config.maxDelayBetweenInputBytes);
 
-});
+}
