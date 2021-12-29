@@ -2,6 +2,7 @@ var play = require("./audio")().play;
 var config = require("../config");
 var util = require('util');
 var fs = require('fs');
+var kbc = require('linux-keyboard-catcher');
 
 var site3Card = require("./site3Card")(config.stripeKey,
 	config.herokuKey,
@@ -106,24 +107,33 @@ var chargeInProgress = null;
 console.log("Ready. Type quit to do it:");
 
 
-keyfob = fs.createReadStream(config.keyfob,{ encoding: 'ascii'});
+//keyfob = fs.createReadStream("/dev/input/event2",{ encoding: 'ascii'});
+
+kb_keyfob = new kbc.LinuxKeyboardCatcher()
+
+
+kb_keyfob.on('opened', () => console.log("Opened kb_keyfob"));
+kb_keyfob.on('closed', () => console.log("Closed kb_keyfob"));
+kb_keyfob.on('error', (message) => console.log("kb_keyfob Error: ",message));
+kb_keyfob.open("/dev/input/event0",false)
+	.then(()=>console.log("kb_keyfob stream opened"))
+	.catch((e)=>console.log("kb_keyfob Exception",e));
 
 // this real main function where things start
-keyfob.on('readable', function () {
-	var key = String(keyfob.read());
-	//console.log("got: " + key);
+kb_keyfob.on('event', function (keyEvent) {
+	if (keyEvent.value > 0 ) {
+		if (keyEvent.alt === false && keyEvent.meta === false && keyEvent.control === false) {
+			if (keyEvent.mapped) {
+				currentCardData += keyEvent.mapped;
+			}
+		}
+	}
 
 	// if we are still receiving bytes,
 	// delay prevent the call to process
 	// the input
 	if (currentTimeoutId != null)
 		clearTimeout(currentTimeoutId);
-
-	// manual exit command
-	if (currentCardData + key == "quit") exit();
-
-	// accumulate the bytes
-	currentCardData += key;
 
 	// the data comes in trickles, so
 	// try to send them for processing in the future
@@ -150,9 +160,4 @@ keyfob.on('readable', function () {
 		},
 		config.maxDelayBetweenInputBytes);
 
-});
-
-keyfob.on('end', function() {
-	process.stdout.write('end');
-	exit();
 });

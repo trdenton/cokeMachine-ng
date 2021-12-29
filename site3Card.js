@@ -54,6 +54,7 @@ function preAuth(string, success, fail)
 	if (string.length < 4)
 	{ fail("nocard"); return; }
 
+	// 8 length is keyfob.  Longer is credit card.
 	if (string.length == 8)
 	{
 		success(parseCard(string));
