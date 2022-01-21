@@ -6,13 +6,16 @@ cokeIO.prototype.dispenseAt = dispenseAt;
 cokeIO.prototype.exit = exit;
 cokeIO.prototype.printInputs = printInputs;
 
-var Gpio = require('onoff').Gpio;
+const gpio = require('raspi-gpio');
 var exec = require('child_process').exec;
 
 //var sys = require('sys');
 function puts(error, stdout, stderr) { /* sys.puts(stdout) */ }
 //function putstr(error, stdout, stderr) { sys.puts(stdout) }
 
+
+//NOTE the original gpio command, with the -g switch, is using the BCM_GPIO numbering on rv2
+//ref: http://wiringpi.com/the-gpio-utility/
 
 /*
 +-----+-----+---------+------+---+--B Plus--+---+------+---------+-----+-----+
@@ -41,7 +44,7 @@ function puts(error, stdout, stderr) { /* sys.puts(stdout) */ }
  +-----+-----+---------+------+---+----++----+---+------+---------+-----+-----+
  | BCM | wPi |   Name  | Mode | V | Physical | V | Mode | Name    | wPi | BCM |
  +-----+-----+---------+------+---+--B Plus--+---+------+---------+-----+-----+
-*/
+ */
 
 
 var inputGpios = new Array();
@@ -49,138 +52,117 @@ var outputGpios = new Array();
 
 function cokeIO(inputs, outputs)
 {
-  if (!(this instanceof cokeIO))
-    return new cokeIO(inputs, outputs);
+	if (!(this instanceof cokeIO))
+		return new cokeIO(inputs, outputs);
 
-  setupInputs(inputs);
-  setupOutputs(outputs);
+	setupInputs(inputs);
+	setupOutputs(outputs);
 }
 
 function setupInputs(inputs)
 {
-  process.stdout.write("\nSetting Up Inputs.");
-    for (var i = 0; i < inputs.length; i++)
-    {
-	    //export to userspace
-	    //exec("echo " + inputs[i] + " > /sys/class/gpio/export",puts);
-	    //set to input
-	    exec('echo "in" > /sys/class/gpio/gpio'+inputs[i]+'/direction',puts);
-	    //exec("gpio -g write " + inputs[i] + " 0", puts);
-	    //exec("gpio -g mode " + inputs[i] + " in", puts);
-	    //exec("gpio -g mode " + inputs[i] + " up ", puts);
-	    inputGpios[i] = new Gpio(inputs[i], 'in','both');
-      process.stdout.write(".");
-    }
-    process.stdout.write("done.");
+	process.stdout.write("\nSetting Up Inputs.");
+	for (var i = 0; i < inputs.length; i++)
+	{
+		inputGpios[i] = new gpio.DigitalInput({pin: "GPIO"+inputs[i], pullResistor: gpio.PULL_UP});
+		process.stdout.write(".");
+	}
+	process.stdout.write("done.");
 }
 
 function setupOutputs(outputs)
 {
-  process.stdout.write("\nSetting Up Outputs.");
-    for (var i=0; i < outputs.length; i++)
-    {
-	    //export to userspace
-	    //exec("echo " + outputs[i] + " > /sys/class/gpio/export",puts);
-	    //set to output
-	    exec('echo "out" > /sys/class/gpio/gpio'+outputs[i]+'/direction',puts);
-	    //set to low
-	    exec('echo "0" > /sys/class/gpio/gpio'+outputs[i]+'/value',puts);
-	    //exec("gpio -g mode " + outputs[i] + " out", puts);
-	    //exec("gpio -g write " + outputs[i] + " 0 ", puts);
-	    outputGpios[i] = new Gpio(outputs[i], 'out');
-      process.stdout.write(".");
-    }
-    process.stdout.write("done.\n");
+	process.stdout.write("\nSetting Up Outputs.");
+	for (var i=0; i < outputs.length; i++)
+	{
+		outputGpios[i] = new gpio.DigitalOutput("GPIO"+outputs[i]);
+		process.stdout.write(".");
+	}
+	process.stdout.write("done.\n");
 }
 
 function printInputs()
 {
-  var btns = new bitField(0);
+	var btns = new bitField(0);
 
-  for (var i=0; i < inputGpios.length; i++)
-    {
-		    btns.setBit(i, inputGpios[i].readSync());
-        //		    if (inputGpios[i].readSync() != 0)
-        //				    console.log(" not zero: " + inputs[i]);
-    }
-				console.log("Buttons: 0x" + btns.value.toString(16) );
-				console.log("Buttons: 0b" + btns.value.toString(2) );
+	for (var i=0; i < inputGpios.length; i++)
+	{
+		btns.setBit(i, inputGpios[i].read());
+	}
+	console.log("Buttons: 0x" + btns.value.toString(16) );
+	console.log("Buttons: 0b" + btns.value.toString(2) );
 
 }
 
 function exit()
 {
-  console.log("unexporting GPIOs");
-  for (var i =0; i < outputGpios.length; i++)
-      outputGpios[i].unexport();
-  for (var i =0; i < inputGpios.length; i++)
-      inputGpios[i].unexport();
+	console.log("unexporting GPIOs");
 }
 
 function sleep(miliseconds)
 {
-  var end = new Date().getTime() + miliseconds;
-  while(new Date().getTime() < end);
+	var end = new Date().getTime() + miliseconds;
+	while(new Date().getTime() < end);
 }
 
 function dispenseAt(bayNumber)
 {
 	console.log("dispensing at: " + bayNumber);
-                // all good dispense the can.
-		console.log("dispensing out of: ["+ bayNumber +"] which is bcmGPIO: " + outputGpios[bayNumber].gpio );
-                outputGpios[bayNumber].writeSync(1);
-                sleep(1000);
-                outputGpios[bayNumber].writeSync(0);
+	// all good dispense the can.
+	console.log("dispensing out of: ["+ bayNumber +"]");
+	outputGpios[bayNumber].write(1);
+	sleep(1000);
+	outputGpios[bayNumber].write(0);
 }
 
 
 function tryDispensing(success, fail)
 {
-    console.log("Choose Booze");
+	console.log("Choose Booze");
 
-    buttonsStart = 0;
-    buttonsEnd = 7;  // change this for machines with more than 7 buttons. This should eventually be a config.
+	buttonsStart = 0;
+	buttonsEnd = 7;  // change this for machines with more than 7 buttons. This should eventually be a config.
 
-    var i= buttonsStart;
+	var i= buttonsStart;
 
-    var end = new Date().getTime() + 45000; // 45 seconds
-    var lasterror = new Date().getTime() - 2000;
+	var end = new Date().getTime() + 45000; // 45 seconds
+	var lasterror = new Date().getTime() - 2000;
 
-    while(i <= buttonsEnd && (new Date().getTime()) < end )
-    {
-        // is there button down?
-        sleep(50);
-  	if (inputGpios[i].readSync() != 1)
-            {
-                console.log("button " + i + "down!");
+	while(i <= buttonsEnd && (new Date().getTime()) < end )
+	{
+		// is there button down?
+		sleep(50);
+		if (inputGpios[i].read() != 1)
+		{
+			console.log("button " + i + "down!");
 
-          		// reset the timer
-          		//end = new Date().getTime() + 30000; // 30 seconds
+			// reset the timer
+			//end = new Date().getTime() + 30000; // 30 seconds
 
-                printInputs();
+			printInputs();
 
-                // are we out of it?
-                if (inputGpios[i+8].readSync() == 0)
-                {
-                    if ( (new Date().getTime()) > (lasterror + 2000)  )
-                    {
-                      console.log("we are out of that thing");
+			// are we out of it?
+			if (inputGpios[i+8].read() == 0)
+			{
+				if ( (new Date().getTime()) > (lasterror + 2000)  )
+				{
+					console.log("we are out of that thing");
 
-                      lasterror = new Date().getTime();
-                      fail("soldout");
-                    }
-                }
-		            else
-		            {
-                  success(i);
-                  return;
-		            }
+					lasterror = new Date().getTime();
+					fail("soldout");
+				}
+			}
+			else
+			{
+				success(i);
+				return;
+			}
 
-            }
-        i++;
-        if (i > buttonsEnd)
-            i = buttonsStart;
-    }
+		}
+		i++;
+		if (i > buttonsEnd)
+			i = buttonsStart;
+	}
 
 	console.log("Waited too long!");
 	fail("timedout");
@@ -188,13 +170,13 @@ function tryDispensing(success, fail)
 
 function bitField(value)
 {
-		this.value = (!isNaN(parseFloat(value)) && isFinite(value))? value : 0;
-		this.getBit = function(bitNumber) { return (this.value >> bitNumber)& 0x1 }
-        this.setBit = function(bitNumber, value) {
-                        if (value == 0)
-                        { this.value &= 0x7FFFFFFF  & ~(1 << bitNumber); }
-                else
-                        { this.value |= 0x1 << bitNumber; }
-         }
+	this.value = (!isNaN(parseFloat(value)) && isFinite(value))? value : 0;
+	this.getBit = function(bitNumber) { return (this.value >> bitNumber)& 0x1 }
+	this.setBit = function(bitNumber, value) {
+		if (value == 0)
+		{ this.value &= 0x7FFFFFFF  & ~(1 << bitNumber); }
+		else
+		{ this.value |= 0x1 << bitNumber; }
+	}
 
 }
