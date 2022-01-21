@@ -6,6 +6,7 @@ cokeIO.prototype.dispenseAt = dispenseAt;
 cokeIO.prototype.exit = exit;
 cokeIO.prototype.printInputs = printInputs;
 
+const rpi = require('raspi')
 const gpio = require('raspi-gpio');
 
 //NOTE the original gpio command, with the -g switch, is using the BCM_GPIO numbering on rv2
@@ -58,7 +59,7 @@ function setupInputs(inputs)
 	process.stdout.write("\nSetting Up Inputs.");
 	for (var i = 0; i < inputs.length; i++)
 	{
-		inputGpios[i] = new gpio.DigitalInput({pin: "GPIO"+inputs[i], pullResistor: gpio.PULL_UP});
+		inputGpios[i] = new gpio.DigitalInput({pin: inputs[i], pullResistor: gpio.PULL_UP});
 		process.stdout.write(".");
 	}
 	process.stdout.write("done.");
@@ -69,7 +70,7 @@ function setupOutputs(outputs)
 	process.stdout.write("\nSetting Up Outputs.");
 	for (var i=0; i < outputs.length; i++)
 	{
-		outputGpios[i] = new gpio.DigitalOutput("GPIO"+outputs[i]);
+		outputGpios[i] = new gpio.DigitalOutput(outputs[i]);
 		process.stdout.write(".");
 	}
 	process.stdout.write("done.\n");
