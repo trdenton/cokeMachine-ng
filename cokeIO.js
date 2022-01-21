@@ -7,12 +7,6 @@ cokeIO.prototype.exit = exit;
 cokeIO.prototype.printInputs = printInputs;
 
 const gpio = require('raspi-gpio');
-var exec = require('child_process').exec;
-
-//var sys = require('sys');
-function puts(error, stdout, stderr) { /* sys.puts(stdout) */ }
-//function putstr(error, stdout, stderr) { sys.puts(stdout) }
-
 
 //NOTE the original gpio command, with the -g switch, is using the BCM_GPIO numbering on rv2
 //ref: http://wiringpi.com/the-gpio-utility/
@@ -96,7 +90,7 @@ function printInputs()
 
 function exit()
 {
-	console.log("unexporting GPIOs");
+	console.log("Exiting GPIO");
 }
 
 function sleep(miliseconds)
